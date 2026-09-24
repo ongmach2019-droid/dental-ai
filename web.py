@@ -53,7 +53,7 @@ st.markdown("""
 st.markdown("<h1 style='color: #0c4a6e; text-align: center; font-size: 30px; margin-bottom: 0px;'>🏥 ប្រព័ន្ធ AI ពេទ្យធ្មេញ</h1>", unsafe_allow_html=True)
 
 # ៤. កុងតាក់ Auto Refresh ដាក់នៅកណ្តាលរាងតូចស្អាតចំណេញកន្លែង
-col1, col2, col3 = st.columns([3, 2, 3])
+col1, col2 = st.columns([7, 3])
 with col2:
     is_auto_refresh = st.toggle("🔄 Auto refresh (10s)", value=True)
 
