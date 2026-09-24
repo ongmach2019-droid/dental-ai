@@ -3,3 +3,5 @@ scikit-learn
 requests
 gspread
 streamlit-autorefresh
+google-generativeai
+Pillow
