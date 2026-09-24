@@ -71,39 +71,33 @@ def send_telegram(message):
     try: requests.get(url) 
     except: pass
 
-# ៥. របារបញ្ជាឆ្លាតវៃ (GEMINI BAR) - ស្អាត ខ្លី មិនមានអក្សរច្រើន
-c1, c2, c3, c4 = st.columns([1, 6, 1.2, 1.2], gap="small")
-with c1:
-    with st.popover("📎"): # ប៊ូតុងរូបកៀបឯកសារ សម្រាប់ដាក់រូបភាព
-        រូបភាព = st.file_uploader("", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-with c3:
-    # ប៊ូតុងមីក្រូហ្វូន ចុចដើម្បីនិយាយ រួចចុច 🛑 ដើម្បីបញ្ឈប់ វានឹងលោតចេញជាអក្សរ
-    សំឡេង = speech_to_text(language='km-KH', start_prompt="🎙️", stop_prompt="🛑", use_container_width=True, key='STT')
-with c2:
-    អត្ថបទ_បច្ចុប្បន្ន = សំឡេង if សំឡេង else ""
-    ប្រអប់អត្ថបទ = st.text_input("", value=អត្ថបទ_បច្ចុប្បន្ន, placeholder="សួរ AI ឬនិយាយ...", label_visibility="collapsed")
-with c4:
-    បញ្ជូន = st.button("⬆️", use_container_width=True)
-
-if បញ្ជូន and (ប្រអប់អត្ថបទ or រូបភាព):
-    with st.spinner("AI កំពុងគិត..."):
-        try:
-            សំណុំទិន្នន័យ = ["""ទាញយកទិន្នន័យអ្នកជំងឺចេញពីអត្ថបទឬរូបភាពនេះ ហើយសរសេរចេញជាទម្រង់ JSON សុទ្ធ: {"name": "ឈ្មោះ", "age": លេខ, "time": ម៉ោងណាត់(0=ព្រឹក, 1=ល្ងាច), "cancelled": ធ្លាប់លុប(0=ទេ, 1=ធ្លាប់)}"""]
-            if ប្រអប់អត្ថបទ: សំណុំទិន្នន័យ.append(ប្រអប់អត្ថបទ)
-            if រូបភាព: សំណុំទិន្នន័យ.append(Image.open(រូបភាព))
-            
-            ចម្លើយ = vision_model.generate_content(សំណុំទិន្នន័យ)
-            ទិន្នន័យ = json.loads(ចម្លើយ.text.replace("```json", "").replace("```", "").strip())
-            
-            if "name" in ទិន្នន័យ: st.session_state.ស្កេន_ឈ្មោះ = ទិន្នន័យ["name"]
-            if "age" in ទិន្នន័យ: st.session_state.ស្កេន_អាយុ = int(ទិន្នន័យ["age"])
-            if "time" in ទិន្នន័យ: st.session_state.ស្កេន_ម៉ោង = int(ទិន្នន័យ["time"])
-            if "cancelled" in ទិន្នន័យ: st.session_state.ស្កេន_លុប = int(ទិន្នន័យ["cancelled"])
-        except:
-            st.error("សូមទោស AI ចាប់ទិន្នន័យមិនបានច្បាស់ទេ។")
-
-st.divider()
-
+# ៤. ភ្ជាប់ទៅ Google Sheets & Gemini (កំណត់តួនាទីឱ្យ AI ស្គាល់ច្បាស់)
+@st.cache_resource
+def init_services():
+    credentials = st.secrets["gcp_service_account"]
+    gc = gspread.service_account_from_dict(credentials)
+    sh = gc.open("Dental_AI_Data")
+    
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    
+    # បង្រៀន AI ឱ្យស្គាល់តួនាទី និងទម្រង់ទិន្នន័យជាក់លាក់
+    system_prompt = """
+    អ្នកគឺជា AI ជំនួយការគ្លីនិកពេទ្យធ្មេញដ៏ជំនាញ។ 
+    หน้าที่របស់អ្នកគឺអានអត្ថបទ ឬរូបភាពដែលអ្នកប្រើប្រាស់បញ្ជូនមក (មិនថានៅក្នុងរូបភាពជាភាសាខ្មែរ ឬអង់គ្លេស) 
+    ហើយទាញយកតម្លៃមកបំពេញក្នុងទម្រង់ JSON ឱ្យបានត្រឹមត្រូវបំផុត៖
+    - "name": ឈ្មោះអ្នកជំងឺ (ត្រូវរក្សាទុកជាអក្សរខ្មែរ ឬឡាតាំងតាមប្រភព)
+    - "age": អាយុ (ទាញយកជាខ្នាតលេខគត់ ឧ. 25)
+    - "time": ម៉ោងណាត់ជួប (បើក្នុងប្រភពបញ្ជាក់ថា ព្រឹក/Morning/AM គឺកំណត់តម្លៃ 0; បើ ល្ងាច/រសៀល/Evening/PM គឺកំណត់តម្លៃ 1)
+    - "cancelled": ធ្លាប់លុបការណាត់ពីមុនទេ (បើធ្លាប់/ເຄີຍលុប គឺកំណត់តម្លៃ 1; បើមិនធ្លាប់ ឬគ្មានបញ្ជាក់ គឺកំណត់តម្លៃ 0)
+    
+    សូមឆ្លើយតបមកវិញជា JSON សុទ្ធសាធ (Valid JSON) ដោយគ្មានអក្សរអធិប្បាយផ្សេងទៀតឡើយ។
+    """
+    
+    model = genai.GenerativeModel(
+        model_name='gemini-1.5-flash',
+        system_instruction=system_prompt
+    )
+    return sh.sheet1, model
 # ៦. ទម្រង់ Auto-fill (ខ្លីៗ ស្រឡះភ្នែក)
 ឈ្មោះ = st.text_input("ឈ្មោះ", value=st.session_state.ស្កេន_ឈ្មោះ)
 col1, col2 = st.columns(2)
