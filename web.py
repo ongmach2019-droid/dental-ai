@@ -7,11 +7,11 @@ from streamlit_autorefresh import st_autorefresh
 import google.generativeai as genai
 from PIL import Image
 import json
+import streamlit.components.v1 as components
 
 # ១. កំណត់ទម្រង់វេបសាយ
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-# អង្គចងចាំសម្រាប់ Auto-fill
 for key in ['ស្កេន_ឈ្មោះ', 'ស្កេន_អាយុ', 'ស្កេន_ម៉ោង', 'ស្កេន_លុប']:
     if key not in st.session_state:
         st.session_state[key] = "" if key == 'ស្កេន_ឈ្មោះ' else (25 if key == 'ស្កេន_អាយុ' else 0)
@@ -24,7 +24,6 @@ st.markdown("""
     .stApp { background-color: #f8fafc; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; max-width: 750px; }
     
-    /* លាក់អក្សររបស់កុងតាក់ Auto Refresh */
     div[data-testid="stToggle"] label p { font-size: 0px; }
     div[data-testid="stToggle"] label p::before { content: "🔄 Auto (10s)"; font-size: 14px; margin-right: 5px; color: gray;}
     
@@ -78,12 +77,45 @@ def send_telegram(message):
     try: requests.get(url) 
     except: pass
 
-# ៥. របារបញ្ជាឆ្លាតវៃ (GEMINI STYLE BAR)
+# ៥. បន្ថែមប្រអប់និយាយដោយសំឡេង (Voice Record Component)
+voice_html = """
+<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+    <button onclick="startListening()" style="background: #ef4444; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; font-family: 'Kantumruy Pro', sans-serif;">
+        🎙️ ចុចនិយាយ (Voice)
+    </button>
+    <span id="status" style="color: #64748b; font-size: 14px; font-family: 'Kantumruy Pro', sans-serif;">សូមចុចប៊ូតុងដើម្បីនិយាយជាភាសាខ្មែរ...</span>
+</div>
+<script>
+function startListening() {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'km-KH'; // កំណត់ភាសាខ្មែរ
+    recognition.onstart = function() {
+        document.getElementById('status').innerText = "🔴 កំពុងស្តាប់... សូមនិយាយ!";
+    };
+    recognition.onresult = function(event) {
+        const speechToText = event.results[0][0].transcript;
+        document.getElementById('status').innerText = "✅ ទទួលបាន៖ " + speechToText;
+        // ส่งข้อมูลไปยัง Streamlit input (រក្សាទុកក្នុង Local Storage)
+        const inputField = window.parent.document.querySelector('input[aria-label="prompt"]');
+        if (inputField) {
+            inputField.value = speechToText;
+            inputField.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    };
+    recognition.onerror = function(event) {
+        document.getElementById('status').innerText = "❌ មានបញ្ហាក្នុងការស្តាប់ សូមព្យាយាមម្តងទៀត។";
+    };
+    recognition.start();
+}
+</script>
+"""
+components.html(voice_html, height=50)
+
+# ៦. របារបញ្ជាឆ្លាតវៃ (GEMINI STYLE BAR)
 with st.form(key='gemini_form', clear_on_submit=False):
     col_input, col_file, col_submit = st.columns([6, 1.2, 1.2], gap="small")
     with col_input:
-        # 💡 អ្នកสามารถចុចសញ្ញាមីក្រូហ្វូននៅលើក្តារចុច (Keyboard) ដើម្បីនិយាយជាសំឡេងវាគ្មិនខ្មែរបានភ្លាមៗ!
-        ប្រអប់អត្ថបទ = st.text_input("prompt", placeholder="សួរ AI ឬនិយាយ (ចុចមីក្រូហ្វូនលើក្តារចុច)...", label_visibility="collapsed")
+        ប្រអប់អត្ថបទ = st.text_input("prompt", placeholder="សួរ AI ឬនិយាយ...", label_visibility="collapsed")
     with col_file:
         រូបភាព = st.file_uploader("file", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
     with col_submit:
@@ -110,12 +142,12 @@ if បញ្ជូន and (ប្រអប់អត្ថបទ or រូបភ�
 
 st.divider()
 
-# ៦. ទម្រង់ Auto-fill
+# ៧. ទម្រង់ Auto-fill
 st.markdown("📝 **ពិនិត្យ និងរក្សាទុកទិន្នន័យ**")
 ឈ្មោះ = st.text_input("ឈ្មោះ", value=st.session_state.ស្កេន_ឈ្មោះ)
 col1, col2 = st.columns(2)
 with col1: អាយុ = st.number_input("អាយុ", min_value=1, max_value=100, value=st.session_state.ស្កេន_អាយុ)
-with col2: ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], index=st.session_state.ស្កេន_ម៉ោង, format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
+with col2: ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], index=st.session_state.ស្កεន_ម៉ោង if 'ស្កεន_ម៉ោង' in locals() else st.session_state.ស្កេន_ម៉ោង, format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
 ធ្លាប់លុប = st.radio("ធ្លាប់លុបការណាត់?", [0, 1], index=st.session_state.ស្កេន_លុប, format_func=lambda x: "ទេ ❌" if x==0 else "ធ្លាប់ ✅", horizontal=True)
 
 if st.button("💾 រក្សាទុកចូល Cloud", use_container_width=True):
@@ -126,7 +158,6 @@ if st.button("💾 រក្សាទុកចូល Cloud", use_container_width
         send_telegram(សារ)
         worksheet.append_row([ឈ្មោះ, អាយុ, ម៉ោងណាត់, ធ្លាប់លុប, int(ការព្យាករណ៍)])
         st.info("រក្សាទុករួចរាល់!")
-        # សម្អាតទម្រង់
         st.session_state.ស្កេន_ឈ្មោះ = ""
         st.session_state.ស្កេន_អាយុ = 25
     else:
