@@ -8,19 +8,16 @@ from streamlit_autorefresh import st_autorefresh
 # ១. កំណត់ទម្រង់វេបសាយ 
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-# ២. កំណត់ Refresh រាល់ ១០ វិនាទី (ឱ្យវាដើរស្ងាត់ៗនៅពីក្រោយ)
-st_autorefresh(interval=10000, key="auto_refresh")
-
-# ៣. កូដរចនា CSS និង មុខងាររាប់ថយក្រោយនៅជ្រុងខាងស្តាំ
+# ២. កូដរចនា CSS 
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
     * { font-family: 'Kantumruy Pro', sans-serif !important; }
     .stApp { background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); }
     .main .block-container {
-        background-color: rgba(255, 255, 255, 0.95); padding: 2.5rem 3rem;
+        background-color: rgba(255, 255, 255, 0.95); padding: 1.5rem 3rem 2.5rem 3rem;
         border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin-top: 2rem; margin-bottom: 2rem; border: 1px solid rgba(255, 255, 255, 0.5);
+        margin-top: 1rem; margin-bottom: 2rem; border: 1px solid rgba(255, 255, 255, 0.5);
     }
     .stTabs [data-baseweb="tab-list"] { background-color: #f1f5f9; padding: 5px; border-radius: 12px; gap: 10px; }
     .stTabs [data-baseweb="tab"] { border-radius: 8px !important; padding: 10px 20px !important; background-color: transparent; }
@@ -32,52 +29,18 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3) !important; transition: all 0.3s ease !important;
     }
     div.stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4) !important; }
-    
-    /* កូដរចនាប្រអប់រាប់ថយក្រោយនៅជ្រុងខាងស្តាំលើ */
-    .countdown-box {
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background-color: rgba(255, 255, 255, 0.9);
-        padding: 8px 15px;
-        border-radius: 20px;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-        font-size: 15px;
-        font-weight: 700;
-        color: #0ea5e9;
-        z-index: 99999;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        border: 1px solid #e0f2fe;
-    }
-    
-    /* មុខងាររាប់ថយក្រោយ 10s (Pure CSS Animation) */
-    .timer-text::after {
-        content: "10";
-        animation: countdown 10s step-end infinite;
-    }
-    @keyframes countdown {
-        0% { content: "10"; }
-        10% { content: "9"; }
-        20% { content: "8"; }
-        30% { content: "7"; }
-        40% { content: "6"; }
-        50% { content: "5"; }
-        60% { content: "4"; }
-        70% { content: "3"; }
-        80% { content: "2"; }
-        90% { content: "1"; }
-        100% { content: "0"; }
-    }
     </style>
-    
-    <!-- បង្ហាញប្រអប់រាប់ថយក្រោយនៅលើវេបសាយ -->
-    <div class="countdown-box">
-        <span>🔄</span>
-        <span class="timer-text"></span>
-    </div>
 """, unsafe_allow_html=True)
+
+# ៣. បង្កើតប៊ូតុងកុងតាក់ Auto Refresh នៅជ្រុងស្តាំលើ
+col1, col2 = st.columns([7, 3])
+with col2:
+    # កុងតាក់នេះនឹងបើកដោយស្វ័យប្រវត្តិ (value=True)
+    is_auto_refresh = st.toggle("🔄 Auto refresh", value=True)
+
+if is_auto_refresh:
+    # បើកុងតាក់បើក វានឹង Refresh រាល់ ១០ វិនាទី
+    st_autorefresh(interval=10000, key="auto_refresh")
 
 # ៤. ភ្ជាប់ទៅកាន់ Google Sheets (Cloud)
 @st.cache_resource
