@@ -3,8 +3,11 @@ from sklearn.ensemble import RandomForestClassifier
 import requests
 import streamlit as st
 import gspread
-
+from streamlit_autorefresh import st_autorefresh  # <--- ១. បន្ថែមជួរនេះនៅក្រោមគេនៃ import
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
+
+# <--- ២. បន្ថែមជួរនេះ ដើម្បីឱ្យវា Refresh រាល់ 10 វិនាទី (10000 មីលីវិនាទី)
+st_autorefresh(interval=10000, key="auto_refresh")
 
 st.markdown("""
     <style>
