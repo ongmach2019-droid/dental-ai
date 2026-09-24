@@ -8,14 +8,13 @@ from streamlit_autorefresh import st_autorefresh
 # ១. កំណត់ទម្រង់វេបសាយ 
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-# ២. កូដរចនា CSS ដើម្បីទាញវេបសាយឱ្យខិតទៅលើកប់ និងបង្រួមចន្លោះ
+# ២. កូដរចនា CSS ជាមូលដ្ឋាន
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
     * { font-family: 'Kantumruy Pro', sans-serif !important; }
     .stApp { background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); }
     
-    /* នេះគឺជាកូដទាញវេបសាយឱ្យខិតឡើងលើ (លុបចន្លោះទទេរ) */
     .block-container {
         padding-top: 1.5rem !important;
         padding-bottom: 1rem !important;
@@ -29,10 +28,7 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.5);
     }
     
-    /* លាក់របារពណ៌សរបស់ Streamlit ខាងលើគេបន្តិចដើម្បីចំណេញកន្លែង */
-    header[data-testid="stHeader"] {
-        background: transparent !important;
-    }
+    header[data-testid="stHeader"] { background: transparent !important; }
 
     .stTabs [data-baseweb="tab-list"] { background-color: #f1f5f9; padding: 5px; border-radius: 12px; gap: 10px; }
     .stTabs [data-baseweb="tab"] { border-radius: 8px !important; padding: 5px 20px !important; background-color: transparent; }
@@ -49,16 +45,54 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ៣. ផ្ទៃវេបសាយ (UI) - រៀបចំណងជើងមុនគេ
+# ៣. ផ្ទៃវេបសាយ (UI)
 st.markdown("<h1 style='color: #0c4a6e; text-align: center; font-size: 30px; margin-bottom: 0px;'>🏥 ប្រព័ន្ធ AI ពេទ្យធ្មេញ</h1>", unsafe_allow_html=True)
 
-# ៤. កុងតាក់ Auto Refresh ដាក់នៅកណ្តាលរាងតូចស្អាតចំណេញកន្លែង
+# ៤. កុងតាក់ Auto Refresh និង កូដរាប់លេខថយក្រោយ
 col1, col2 = st.columns([7, 3])
 with col2:
-    is_auto_refresh = st.toggle("🔄 Auto refresh (10s)", value=True)
+    # លុបអក្សរ (10s) ចេញ ព្រោះយើងនឹងប្រើ CSS បញ្ចូលលេខរាប់ថយក្រោយដោយស្វ័យប្រវត្តិ
+    is_auto_refresh = st.toggle("🔄 Auto refresh", value=True)
 
 if is_auto_refresh:
     st_autorefresh(interval=10000, key="auto_refresh")
+    # បញ្ចូលចលនារាប់លេខ ១០ ទៅ ០ ពណ៌បៃតង ពេលកុងតាក់កំពុងបើក
+    st.markdown("""
+        <style>
+        div[data-testid="stCheckbox"] label p::after, 
+        div[data-testid="stToggle"] label p::after {
+            content: " (10)";
+            animation: countdown 10s step-end infinite;
+            color: #10b981;
+            font-weight: bold;
+        }
+        @keyframes countdown {
+            0% { content: " (10)"; }
+            10% { content: " (9)"; }
+            20% { content: " (8)"; }
+            30% { content: " (7)"; }
+            40% { content: " (6)"; }
+            50% { content: " (5)"; }
+            60% { content: " (4)"; }
+            70% { content: " (3)"; }
+            80% { content: " (2)"; }
+            90% { content: " (1)"; }
+            100% { content: " (0)"; }
+        }
+        </style>
+    """, unsafe_allow_html=True)
+else:
+    # បញ្ចូលអក្សរ (Paused) ពណ៌ក្រហម ពេលកុងតាក់ត្រូវបានបិទ
+    st.markdown("""
+        <style>
+        div[data-testid="stCheckbox"] label p::after, 
+        div[data-testid="stToggle"] label p::after {
+            content: " (Paused)";
+            color: #ef4444;
+            font-weight: bold;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
 # ៥. ភ្ជាប់ទៅកាន់ Google Sheets (Cloud)
 @st.cache_resource
@@ -82,7 +116,7 @@ def train_ai():
 ai_model, df_ទិន្នន័យចាស់ = train_ai()
 
 def send_telegram_message(message):
-    bot_token = '8573963689:AAEX3OFDd4IKFqmMKUIOWlhKc8lHTg8v64M'  # <--- ដាក់ Token នៅទីនេះ
+    bot_token = '8573963689:AAEX3OFDd4IKFqmMKUIOWlhKc8lHTg8v64M'  # <--- កុំភ្លេចដាក់ Token
     chat_id = '8805554075'
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={chat_id}&text={message}"
     try: requests.get(url) 
@@ -97,7 +131,6 @@ def save_to_gsheets(ឈ្មោះ, អាយុ, ម៉ោងណាត់, ធ
 tab1, tab2 = st.tabs(["📝 បញ្ចូលទិន្នន័យថ្មី", "📊 បញ្ជីអ្នកជំងឺ (Cloud)"])
 
 with tab1:
-    # ខ្ញុំបានលុបការចុះបន្ទាត់ (<br>) ចោលទាំងអស់ដើម្បីឱ្យវារួញចូលគ្នា
     ឈ្មោះ = st.text_input("ឈ្មោះអ្នកជំងឺ", placeholder="ឧ. សុខា...")
     col1, col2 = st.columns(2)
     with col1: អាយុ = st.number_input("អាយុ", min_value=1, max_value=100, value=25)
