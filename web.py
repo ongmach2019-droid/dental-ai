@@ -63,10 +63,12 @@ def init_services():
 worksheet, vision_model = init_services()
 
 def train_ai():
-    df = pd.DataFrame(worksheet.get_all_records())
+    data = worksheet.get_all_records()
+    if not data:
+        return None, pd.DataFrame(columns=['ឈ្មោះ', 'អាយុ', 'ម៉ោងណាត់', 'ធ្លាប់លុបចោលការណាត់ពីមុន', 'លទ្ធផលជាក់ស្តែង'])
+    df = pd.DataFrame(data)
     model = RandomForestClassifier()
-    if not df.empty:
-        model.fit(df[['អាយុ', 'ម៉ោងណាត់', 'ធ្លាប់លុបចោលการណាត់ពីមុន']].values, df['លទ្ធផលជាក់ស្តែង'].values)
+    model.fit(df[['អាយុ', 'ម៉ោងណាត់', 'ធ្លាប់លុបចោលការណាត់ពីមុន']].values, df['លទ្ធផលជាក់ស្តែង'].values)
     return model, df
 
 ai_model, df_ទិន្នន័យចាស់ = train_ai()
@@ -107,7 +109,7 @@ with tab1:
                 if "cancelled" in ទិន្នន័យ: st.session_state.ស្កេន_លុប = int(ទិន្នន័យ["cancelled"])
                 st.success("✅ AI បានទាញទិន្នន័យដាក់ចូល Form ខាងក្រោមរួចរាល់!")
             except:
-                st.error("⚠️ AI មិនអាចអានទិន្នន័យបានទេ។ សូមព្យាយាមម្តងទៀត។")
+                st.error("⚠️ AI មិនអាចអានទិន្នន័យได้ទេ។ សូមព្យាយាមម្តងទៀត។")
 
     st.divider()
 
@@ -120,7 +122,11 @@ with tab1:
 
     if st.button("💾 រក្សាទុកចូល Cloud", use_container_width=True):
         if ឈ្មោះ:
-            ការព្យាករណ៍ = ai_model.predict([[អាយុ, ម៉ោងណាត់, ធ្លាប់លុប]])[0] if not df_ទិន្នន័យចាស់.empty else 0
+            if ai_model is not None:
+                ការព្យាករណ៍ = ai_model.predict([[អាយុ, ម៉ោងណាត់, ធ្លាប់លុប]])[0]
+            else:
+                ការព្យាករណ៍ = 0 # ប្រសិនបើទើបតែចាប់ផ្តើមគ្មានទិន្នន័យចាស់
+            
             សារ = f"⚠️ ព្រមាន៖ {ឈ្មោះ} អាចមិនមកតាមការណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {ឈ្មោះ} នឹងមកតាមការណាត់។"
             st.error(សារ) if ការព្យាករណ៍==1 else st.success(សារ)
             send_telegram(សារ)
@@ -131,14 +137,12 @@ with tab1:
         else:
             st.warning("សូមបញ្ចូលឈ្មោះអ្នកជំងឺ!")
 
-# ៦. ផ្ទាំងសង្ខេបតារាងតាមឈ្មោះ ព្រមទាំងបន្ថែមប្រអប់ស្វែងរក (Filter) នៅ Tab 2
+# ៦. ផ្ទាំងសង្ខេបតារាងតាមឈ្មោះ ព្រមទាំងប្រអប់ស្វែងរក (Filter) នៅ Tab 2
 with tab2:
     st.markdown("📊 **តារាងសង្ខេបចំនួនដងមកព្យាបាលរបស់អតិថិជនម្នាក់ៗ**")
-    if not df_ទិន្នន័យចាស់.empty:
-        # បង្កើតប្រអប់ស្វែងរក (Search / Filter Box)
-        search_query = st.text_input("🔍 ស្វែងរកតាមឈ្មោះអ្នកជំងឺ", placeholder="វាយឈ្មោះទីនេះដើម្បី filter...", label_visibility="collapsed")
+    if not df_ទិន្នន័យចាស់.empty and 'ឈ្មោះ' in df_ទិន្នន័យចាស់.columns:
+        search_query = st.text_input("🔍 ស្វែងរកតាមឈ្មោះអ្នកជំងឺ", placeholder="វាយឈ្មោះទីនេះเพื่อ filter...", label_visibility="collapsed")
         
-        # Group by ឈ្មោះ ដើម្បីបូកសរុបចំនួនដងមក
         df_grouped = df_ទិន្នន័យចាស់.groupby('ឈ្មោះ').agg(
             អាយុ=('អាយុ', 'first'),
             ចំនួនដងមកសរុប=('ឈ្មោះ', 'count'),
@@ -146,11 +150,10 @@ with tab2:
             លទ្ធផលជាក់ស្តែង=('លទ្ធផលជាក់ស្តែង', 'sum')
         ).reset_index()
         
-        # ធ្វើការ Filter តារាងតាមអក្សរដែលបានវាយ
         if search_query:
             df_grouped = df_grouped[df_grouped['ឈ្មោះ'].str.contains(search_query, case=False, na=False)]
         
         st.metric(label="ចំនួនអតិថិជនបង្ហាញសរុប (នាក់)", value=f"{len(df_grouped)}")
         st.dataframe(df_grouped, use_container_width=True)
     else:
-        st.info("មិនទាន់មានទិន្នន័យនៅលើ Cloud ទេ។")
+        st.info("មិនទាន់មានទិន្នន័យនៅលើ Cloud ទេ។ សូមបញ្ចូលទិន្នន័យដំបូងនៅ Tab ទី ១ ជាមុនសិន។")
