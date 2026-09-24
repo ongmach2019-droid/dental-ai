@@ -5,4 +5,3 @@ gspread
 streamlit-autorefresh
 google-generativeai
 Pillow
-streamlit-mic-recorder

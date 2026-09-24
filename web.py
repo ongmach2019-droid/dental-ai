@@ -7,7 +7,6 @@ from streamlit_autorefresh import st_autorefresh
 import google.generativeai as genai
 from PIL import Image
 import json
-from streamlit_mic_recorder import mic_to_text
 
 # ១. កំណត់ទម្រង់វេបសាយ
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
@@ -73,47 +72,38 @@ ai_model, df_ទិន្នន័យចាស់ = train_ai()
 
 def send_telegram(message):
     bot_token = '8573963689:AAEX3OFDd4IKFqmMKUIOWlhKc8lHTg8v64M'  # <--- កុំភ្លេចដាក់ Token
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id=8805554075&text= {message}"
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id=8805554075&text={message}"
     try: requests.get(url) 
     except: pass
 
-# ៥. ប្រអប់និយាយដោយសំឡេង និងបញ្ចូលឯកសារ (GEMINI VOICE BAR)
-st.markdown("💬 **បញ្ជាដោយសំឡេង ឬបញ្ចូលរូបភាព**")
-col_mic, col_file = st.columns([1, 1])
+# ៥. របារបញ្ជាឆ្លាតវៃ (GEMINI STYLE BAR)
+with st.form(key='gemini_form', clear_on_submit=False):
+    col_input, col_file, col_submit = st.columns([6, 1.2, 1.2], gap="small")
+    with col_input:
+        ប្រអប់អត្ថបទ = st.text_input("prompt", placeholder="សួរ AI ឧ. កត់ឈ្មោះ សុខា អាយុ ៣០ ណាត់ព្រឹក...", label_visibility="collapsed")
+    with col_file:
+        រូបភាព = st.file_uploader("file", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+    with col_submit:
+        បញ្ជូន = st.form_submit_button("⬆️ ស្កេន", use_container_width=True)
 
-with col_mic:
-    # 🎙️ ប៊ូតុងនិយាយផ្ទាល់ជាភាសាខ្មែរ
-    spoken_text = mic_to_text(language='km-KH', start_prompt="🎙️ ចុចដើម្បីនិយាយ", stop_prompt="🛑 បញ្ឈប់ការនិយាយ", just_once=True, key='mic')
-    if spoken_text:
-        st.session_state.សំឡេង_អត្ថបទ = spoken_text
-
-with col_file:
-    រូបភាព = st.file_uploader("បញ្ចូលរូបភាព", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-
-# ប្រអប់បង្ហាញអត្ថបទដែលនិយាយបាន ឬអាចកែសម្រួលបាន
-ប្រអប់អត្ថបទ = st.text_input("អត្ថបទបញ្ជា:", value=st.session_state.សំឡេង_អត្ថបទ, placeholder="និយាយ ឬវាយបញ្ចូលទីនេះ...")
-
-if st.button("✨ ឱ្យ AI វិភាគ និងបំពេញទម្រង់", use_container_width=True):
-    if ប្រអប់អត្ថបទ or រូបភាព:
-        with st.spinner("AI កំពុងវិភាគយ៉ាងលឿន..."):
-            try:
-                សំណុំទិន្នន័យ = ["ទាញយកទិន្នន័យអ្នកជំងឺពីអត្ថបទ ឬរូបភាពនេះជា JSON:"]
-                if ប្រអប់អត្ថបទ: សំណុំទិន្នន័យ.append(ប្រអប់អត្ថបទ)
-                if រូបភាព: សំណុំទិន្នន័យ.append(Image.open(រូបភាព))
-                
-                ចម្លើយ = vision_model.generate_content(សំណុំទិន្នន័យ)
-                អត្ថបទ_json = ចម្លើយ.text.replace("```json", "").replace("```", "").strip()
-                ទិន្នន័យ = json.loads(អត្ថបទ_json)
-                
-                if "name" in ទិន្នន័យ: st.session_state.ស្កេន_ឈ្មោះ = ទិន្នន័យ["name"]
-                if "age" in ទិន្នន័យ: st.session_state.ស្កេន_អាយុ = int(ទិន្នន័យ["age"])
-                if "time" in ទិន្នន័យ: st.session_state.ស្កេន_ម៉ោង = int(ទិន្នន័យ["time"])
-                if "cancelled" in ទិន្នន័យ: st.session_state.ស្កេន_លុប = int(ទិន្នន័យ["cancelled"])
-                st.success("✅ ជោគជ័យ! ទិន្នន័យត្រូវបានទាញដាក់ចូល Form ខាងក្រោម។")
-            except:
-                st.error("⚠️ AI មិនអាចអានបានទេ។ សូមព្យាយាមនិយាយ ឬបញ្ចូលម្តងទៀត។")
-    else:
-        st.warning("⚠️ សូមនិយាយ ឬបញ្ចូលអត្ថបទ/រូបភាពជាមុនសិន!")
+if បញ្ជូន and (ប្រអប់អត្ថបទ or រូបភាព):
+    with st.spinner("AI កំពុងវិភាគ..."):
+        try:
+            សំណុំទិន្នន័យ = ["ទាញយកទិន្នន័យអ្នកជំងឺពីអត្ថបទ ឬរូបភាពនេះជា JSON:"]
+            if ប្រអប់អត្ថបទ: សំណុំទិន្នន័យ.append(ប្រអប់អត្ថបទ)
+            if រូបភាព: សំណុំទិន្នន័យ.append(Image.open(រូបភាព))
+            
+            ចម្លើយ = vision_model.generate_content(សំណុំទិន្នន័យ)
+            អត្ថបទ_json = ចម្លើយ.text.replace("```json", "").replace("```", "").strip()
+            ទិន្នន័យ = json.loads(អត្ថបទ_json)
+            
+            if "name" in ទិន្នន័យ: st.session_state.ស្កេន_ឈ្មោះ = ទិន្នន័យ["name"]
+            if "age" in ទិន្នន័យ: st.session_state.ស្កេន_អាយុ = int(ទិន្នន័យ["age"])
+            if "time" in ទិន្នន័យ: st.session_state.ស្កេន_ម៉ោង = int(ទិន្នន័យ["time"])
+            if "cancelled" in ទិន្នន័យ: st.session_state.ស្កេន_លុប = int(ទិន្នន័យ["cancelled"])
+            st.success("✅ AI បានទាញទិន្នន័យដាក់ចូល Form ខាងក្រោមរួចរាល់!")
+        except:
+            st.error("⚠️ AI មិនអាចអានទិន្នន័យបានទេ។ សូមព្យាយាមម្តងទៀត។")
 
 st.divider()
 
@@ -128,14 +118,13 @@ with col2: ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [
 if st.button("💾 រក្សាទុកចូល Cloud", use_container_width=True):
     if ឈ្មោះ:
         ការព្យាករណ៍ = ai_model.predict([[អាយុ, ម៉ោងណាត់, ធ្លាប់លុប]])[0]
-        សារ = f"⚠️ ព្រមាន៖ {ឈ្មោះ} អាចមិនមកតាមការណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {ឈ្មោះ} នឹងមកតាមការណាត់។"
+        សារ = f"⚠️ ព្រមាន៖ {ឈ្មោះ} អាចមិនមកតាមการណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {ឈ្មោះ} នឹងមកតាមការណាត់។"
         st.error(សារ) if ការព្យាករណ៍==1 else st.success(សារ)
         send_telegram(សារ)
         worksheet.append_row([ឈ្មោះ, អាយុ, ម៉ោងណាត់, ធ្លាប់លុប, int(ការព្យាករណ៍)])
         st.info("រក្សាទុករួចរាល់!")
         st.session_state.ស្កេន_ឈ្មោះ = ""
         st.session_state.ស្កេន_អាយុ = 25
-        st.session_state.សំឡេង_អត្ថបទ = ""
     else:
         st.warning("សូមបញ្ចូលឈ្មោះអ្នកជំងឺ!")
 
