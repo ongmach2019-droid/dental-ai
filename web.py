@@ -27,7 +27,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ៣. ផ្នែកក្បាល និង Auto Refresh
-col_t1, col_t2 = st.columns([8, 2])
+col_t1, col_t2 = st.columns([7, 3])
 with col_t2: is_auto_refresh = st.toggle("Auto refresh", value=True, key="auto_ref")
 if is_auto_refresh: st_autorefresh(interval=10000, key="ar")
 
