@@ -7,7 +7,6 @@ from streamlit_autorefresh import st_autorefresh
 import google.generativeai as genai
 from PIL import Image
 import json
-from streamlit_mic_recorder import speech_to_text  # បណ្ណាល័យស្តាប់សំឡេងថ្មី
 
 # ១. កំណត់ទម្រង់វេបសាយ
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
@@ -17,7 +16,7 @@ for key in ['ស្កេន_ឈ្មោះ', 'ស្កេន_អាយុ', '
     if key not in st.session_state:
         st.session_state[key] = "" if key == 'ស្កេន_ឈ្មោះ' else (25 if key == 'ស្កេន_អាយុ' else 0)
 
-# ២. កូដ CSS ធ្វើឱ្យវេបសាយស្រឡះ និងស្អាត (លុបអក្សរច្រើនៗចេញ)
+# ២. កូដ CSS រចនាបែប Gemini Minimalist
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
@@ -29,12 +28,9 @@ st.markdown("""
     div[data-testid="stToggle"] label p { font-size: 0px; }
     div[data-testid="stToggle"] label p::before { content: "🔄 Auto (10s)"; font-size: 14px; margin-right: 5px; color: gray;}
     
-    /* តម្រឹមប៊ូតុង Gemini Bar ឱ្យស្មើគ្នា */
-    div[data-testid="column"] > div { margin-top: 1px; }
-    
     div.stButton > button {
-        border-radius: 10px !important; font-weight: bold !important; height: 42px !important;
-        background: #0ea5e9 !important; color: white !important; border: none !important;
+        border-radius: 12px !important; font-weight: bold !important; height: 48px !important;
+        background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important; color: white !important; border: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -44,7 +40,7 @@ col_t1, col_t2 = st.columns([8, 2])
 with col_t2: is_auto_refresh = st.toggle("Auto refresh", value=True, key="auto_ref")
 if is_auto_refresh: st_autorefresh(interval=10000, key="ar")
 
-st.markdown("<h2 style='text-align: center; color: #0f172a; margin-top: -20px; margin-bottom: 25px;'>🏥 AI ពេទ្យធ្មេញ</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #0f172a; margin-top: -20px; margin-bottom: 20px;'>🏥 AI ពេទ្យធ្មេញ</h2>", unsafe_allow_html=True)
 
 # ៤. ភ្ជាប់ទៅ Google Sheets & Gemini
 @st.cache_resource
@@ -53,7 +49,18 @@ def init_services():
     gc = gspread.service_account_from_dict(credentials)
     sh = gc.open("Dental_AI_Data")
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    return sh.sheet1, genai.GenerativeModel('gemini-1.5-flash')
+    
+    system_prompt = """
+    អ្នកគឺជា AI ជំនួយការគ្លីនិកពេទ្យធ្មេញដ៏ជំនាញ។ 
+    หน้าที่របស់អ្នកគឺអានអត្ថបទ ឬរូបភាពដែលអ្នកប្រើប្រាស់បញ្ជូនមក ហើយទាញយកតម្លៃមកបំពេញក្នុង JSON ឱ្យបានត្រឹមត្រូវ៖
+    - "name": ឈ្មោះអ្នកជំងឺ (ជាភាសាខ្មែរ ឬឡាតាំង)
+    - "age": អាយុ (ជាខ្នាតលេខគត់ ឧ. 25)
+    - "time": ម៉ោងណាត់ជួប (បើ ព្រឹក/Morning ដាក់ 0; បើ ល្ងាច/Evening ដាក់ 1)
+    - "cancelled": ធ្លាប់លុបការណាត់ពីមុនទេ (បើធ្លាប់ដាក់ 1; បើមិនធ្លាប់ដាក់ 0)
+    សូមឆ្លើយតបមកវិញជា JSON សុទ្ធសាធ (Valid JSON) ដោយគ្មានអក្សរអធិប្បាយផ្សេងទៀតឡើយ។
+    """
+    model = genai.GenerativeModel(model_name='gemini-1.5-flash', system_instruction=system_prompt)
+    return sh.sheet1, model
 
 worksheet, vision_model = init_services()
 
@@ -66,56 +73,64 @@ def train_ai():
 ai_model, df_ទិន្នន័យចាស់ = train_ai()
 
 def send_telegram(message):
-    bot_token = '8573963689:AAEX3OFDd4IKFqmMKUIOWlhKc8lHTg8v64M'  # <--- ដាក់ Token នៅទីនេះ
+    bot_token = '8573963689:AAEX3OFDd4IKFqmMKUIOWlhKc8lHTg8v64M'  # <--- កុំភ្លេចដាក់ Token
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id=8805554075&text={message}"
     try: requests.get(url) 
     except: pass
 
-# ៤. ភ្ជាប់ទៅ Google Sheets & Gemini (កំណត់តួនាទីឱ្យ AI ស្គាល់ច្បាស់)
-@st.cache_resource
-def init_services():
-    credentials = st.secrets["gcp_service_account"]
-    gc = gspread.service_account_from_dict(credentials)
-    sh = gc.open("Dental_AI_Data")
-    
-    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-    
-    # បង្រៀន AI ឱ្យស្គាល់តួនាទី និងទម្រង់ទិន្នន័យជាក់លាក់
-    system_prompt = """
-    អ្នកគឺជា AI ជំនួយការគ្លីនិកពេទ្យធ្មេញដ៏ជំនាញ។ 
-    หน้าที่របស់អ្នកគឺអានអត្ថបទ ឬរូបភាពដែលអ្នកប្រើប្រាស់បញ្ជូនមក (មិនថានៅក្នុងរូបភាពជាភាសាខ្មែរ ឬអង់គ្លេស) 
-    ហើយទាញយកតម្លៃមកបំពេញក្នុងទម្រង់ JSON ឱ្យបានត្រឹមត្រូវបំផុត៖
-    - "name": ឈ្មោះអ្នកជំងឺ (ត្រូវរក្សាទុកជាអក្សរខ្មែរ ឬឡាតាំងតាមប្រភព)
-    - "age": អាយុ (ទាញយកជាខ្នាតលេខគត់ ឧ. 25)
-    - "time": ម៉ោងណាត់ជួប (បើក្នុងប្រភពបញ្ជាក់ថា ព្រឹក/Morning/AM គឺកំណត់តម្លៃ 0; បើ ល្ងាច/រសៀល/Evening/PM គឺកំណត់តម្លៃ 1)
-    - "cancelled": ធ្លាប់លុបការណាត់ពីមុនទេ (បើធ្លាប់/ເຄີຍលុប គឺកំណត់តម្លៃ 1; បើមិនធ្លាប់ ឬគ្មានបញ្ជាក់ គឺកំណត់តម្លៃ 0)
-    
-    សូមឆ្លើយតបមកវិញជា JSON សុទ្ធសាធ (Valid JSON) ដោយគ្មានអក្សរអធិប្បាយផ្សេងទៀតឡើយ។
-    """
-    
-    model = genai.GenerativeModel(
-        model_name='gemini-1.5-flash',
-        system_instruction=system_prompt
-    )
-    return sh.sheet1, model
-# ៦. ទម្រង់ Auto-fill (ខ្លីៗ ស្រឡះភ្នែក)
+# ៥. របារបញ្ជាឆ្លាតវៃ (GEMINI STYLE BAR)
+with st.form(key='gemini_form', clear_on_submit=False):
+    col_input, col_file, col_submit = st.columns([6, 1.2, 1.2], gap="small")
+    with col_input:
+        # 💡 អ្នកสามารถចុចសញ្ញាមីក្រូហ្វូននៅលើក្តារចុច (Keyboard) ដើម្បីនិយាយជាសំឡេងវាគ្មិនខ្មែរបានភ្លាមៗ!
+        ប្រអប់អត្ថបទ = st.text_input("prompt", placeholder="សួរ AI ឬនិយាយ (ចុចមីក្រូហ្វូនលើក្តារចុច)...", label_visibility="collapsed")
+    with col_file:
+        រូបភាព = st.file_uploader("file", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+    with col_submit:
+        បញ្ជូន = st.form_submit_button("⬆️ ស្កេន", use_container_width=True)
+
+if បញ្ជូន and (ប្រអប់អត្ថបទ or រូបភាព):
+    with st.spinner("AI កំពុងវិភាគ..."):
+        try:
+            សំណុំទិន្នន័យ = ["ទាញយកទិន្នន័យអ្នកជំងឺពីអត្ថបទ ឬរូបភាពនេះជា JSON:"]
+            if ប្រអប់អត្ថបទ: សំណុំទិន្នន័យ.append(ប្រអប់អត្ថបទ)
+            if រូបភាព: សំណុំទិន្នន័យ.append(Image.open(រូបភាព))
+            
+            ចម្លើយ = vision_model.generate_content(សំណុំទិន្នន័យ)
+            អត្ថបទ_json = ចម្លើយ.text.replace("```json", "").replace("```", "").strip()
+            ទិន្នន័យ = json.loads(អត្ថបទ_json)
+            
+            if "name" in ទិន្នន័យ: st.session_state.ស្កេន_ឈ្មោះ = ទិន្នន័យ["name"]
+            if "age" in ទិន្នន័យ: st.session_state.ស្កេន_អាយុ = int(ទិន្នន័យ["age"])
+            if "time" in ទិន្នន័យ: st.session_state.ស្កេន_ម៉ោង = int(ទិន្នន័យ["time"])
+            if "cancelled" in ទិន្នន័យ: st.session_state.ស្កេន_លុប = int(ទិន្នន័យ["cancelled"])
+            st.success("✅ AI បានទាញទិន្នន័យដាក់ចូល Form ខាងក្រោមរួចរាល់!")
+        except:
+            st.error("⚠️ AI មិនអាចអានទិន្នន័យបានទេ។ សូមព្យាយាមម្តងទៀត។")
+
+st.divider()
+
+# ៦. ទម្រង់ Auto-fill
+st.markdown("📝 **ពិនិត្យ និងរក្សាទុកទិន្នន័យ**")
 ឈ្មោះ = st.text_input("ឈ្មោះ", value=st.session_state.ស្កេន_ឈ្មោះ)
 col1, col2 = st.columns(2)
 with col1: អាយុ = st.number_input("អាយុ", min_value=1, max_value=100, value=st.session_state.ស្កេន_អាយុ)
 with col2: ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], index=st.session_state.ស្កេន_ម៉ោង, format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
 ធ្លាប់លុប = st.radio("ធ្លាប់លុបការណាត់?", [0, 1], index=st.session_state.ស្កេន_លុប, format_func=lambda x: "ទេ ❌" if x==0 else "ធ្លាប់ ✅", horizontal=True)
 
-if st.button("💾 រក្សាទុកទិន្នន័យ", use_container_width=True):
+if st.button("💾 រក្សាទុកចូល Cloud", use_container_width=True):
     if ឈ្មោះ:
         ការព្យាករណ៍ = ai_model.predict([[អាយុ, ម៉ោងណាត់, ធ្លាប់លុប]])[0]
-        សារ = f"⚠️ ព្រមាន៖ {ឈ្មោះ} អាចមិនមក!" if ការព្យាករណ៍==1 else f"✅ {ឈ្មោះ} នឹងមក។"
+        សារ = f"⚠️ ព្រមាន៖ {ឈ្មោះ} អាចមិនមកតាមការណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {ឈ្មោះ} នឹងមកតាមការណាត់។"
         st.error(សារ) if ការព្យាករណ៍==1 else st.success(សារ)
         send_telegram(សារ)
         worksheet.append_row([ឈ្មោះ, អាយុ, ម៉ោងណាត់, ធ្លាប់លុប, int(ការព្យាករណ៍)])
         st.info("រក្សាទុករួចរាល់!")
+        # សម្អាតទម្រង់
+        st.session_state.ស្កេន_ឈ្មោះ = ""
+        st.session_state.ស្កេន_អាយុ = 25
     else:
-        st.warning("សូមបញ្ចូលឈ្មោះ!")
+        st.warning("សូមបញ្ចូលឈ្មោះអ្នកជំងឺ!")
 
 st.divider()
-# ៧. បង្ហាញបញ្ជីអ្នកជំងឺខាងក្រោម
 st.dataframe(df_ទិន្នន័យចាស់, use_container_width=True)
