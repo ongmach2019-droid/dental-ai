@@ -3,12 +3,15 @@ from sklearn.ensemble import RandomForestClassifier
 import requests
 import streamlit as st
 import gspread
-from streamlit_autorefresh import st_autorefresh  # <--- ១. បន្ថែមជួរនេះនៅក្រោមគេនៃ import
+from streamlit_autorefresh import st_autorefresh
+
+# ១. កំណត់ទម្រង់វេបសាយ 
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-# <--- ២. បន្ថែមជួរនេះ ដើម្បីឱ្យវា Refresh រាល់ 10 វិនាទី (10000 មីលីវិនាទី)
-st_autorefresh(interval=10000, key="auto_refresh")
+# ២. កំណត់ Refresh រាល់ ១០ វិនាទី ហើយចាប់យកលេខដែលវាលោត
+ចំនួន_refresh = st_autorefresh(interval=10000, key="auto_refresh")
 
+# ៣. កូដរចនា CSS
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
@@ -32,10 +35,9 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ៣. ភ្ជាប់ទៅកាន់ Google Sheets (កែប្រែថ្មី ប្រើប្រព័ន្ធសុវត្ថិភាព)
+# ៤. ភ្ជាប់ទៅកាន់ Google Sheets (Cloud)
 @st.cache_resource
 def init_gsheets():
-    # ទាញសោពី Streamlit Secrets ជំនួសឱ្យការអាន File
     credentials = st.secrets["gcp_service_account"]
     gc = gspread.service_account_from_dict(credentials)
     sh = gc.open("Dental_AI_Data")
@@ -67,7 +69,11 @@ def save_to_gsheets(ឈ្មោះ, អាយុ, ម៉ោងណាត់, ធ
         return True, "ជោគជ័យ"
     except Exception as e: return False, str(e)
 
+# ៥. ផ្ទៃវេបសាយ (UI)
 st.markdown("<h1 style='color: #0c4a6e; text-align: center; font-size: 32px;'>🏥 ប្រព័ន្ធ AI ពេទ្យធ្មេញ</h1>", unsafe_allow_html=True)
+
+# បង្ហាញលេខ Refresh ឱ្យឃើញច្បាស់នៅទីនេះ!
+st.markdown(f"<p style='text-align: center; color: #10b981; font-weight: bold;'>🔄 ប្រព័ន្ធកំពុងធ្វើបច្ចុប្បន្នភាពទិន្នន័យស្វ័យប្រវត្តិ (លោតបាន {ចំនួន_refresh} ដង)</p>", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["📝 បញ្ចូលទិន្នន័យថ្មី", "📊 បញ្ជីអ្នកជំងឺ (Cloud)"])
 
