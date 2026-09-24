@@ -7,14 +7,14 @@ from streamlit_autorefresh import st_autorefresh
 import google.generativeai as genai
 from PIL import Image
 import json
-import streamlit.components.v1 as components
+from streamlit_mic_recorder import mic_to_text
 
 # ១. កំណត់ទម្រង់វេបសាយ
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-for key in ['ស្កេន_ឈ្មោះ', 'ស្កេន_អាយុ', 'ស្កេន_ម៉ោង', 'ស្កេន_លុប']:
+for key in ['ស្កេន_ឈ្មោះ', 'ស្កេន_អាយុ', 'ស្កេន_ម៉ោង', 'ស្កេន_លុប', 'សំឡេង_អត្ថបទ']:
     if key not in st.session_state:
-        st.session_state[key] = "" if key == 'ស្កេន_ឈ្មោះ' else (25 if key == 'ស្កេន_អាយុ' else 0)
+        st.session_state[key] = "" if key in ['ស្កេន_ឈ្មោះ', 'សំឡេង_អត្ថបទ'] else (25 if key == 'ស្កេន_អាយុ' else 0)
 
 # ២. កូដ CSS រចនាបែប Gemini Minimalist
 st.markdown("""
@@ -39,7 +39,7 @@ col_t1, col_t2 = st.columns([8, 2])
 with col_t2: is_auto_refresh = st.toggle("Auto refresh", value=True, key="auto_ref")
 if is_auto_refresh: st_autorefresh(interval=10000, key="ar")
 
-st.markdown("<h2 style='text-align: center; color: #0f172a; margin-top: -20px; margin-bottom: 20px;'>🏥 AI ពេទ្យធ្មេញ</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #0f172a; margin-top: -20px; margin-bottom: 15px;'>🏥 AI ពេទ្យធ្មេញ</h2>", unsafe_allow_html=True)
 
 # ៤. ភ្ជាប់ទៅ Google Sheets & Gemini
 @st.cache_resource
@@ -73,81 +73,56 @@ ai_model, df_ទិន្នន័យចាស់ = train_ai()
 
 def send_telegram(message):
     bot_token = '8573963689:AAEX3OFDd4IKFqmMKUIOWlhKc8lHTg8v64M'  # <--- កុំភ្លេចដាក់ Token
-    url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id=8805554075&text={message}"
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id=8805554075&text= {message}"
     try: requests.get(url) 
     except: pass
 
-# ៥. បន្ថែមប្រអប់និយាយដោយសំឡេង (Voice Record Component)
-voice_html = """
-<div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-    <button onclick="startListening()" style="background: #ef4444; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: bold; font-family: 'Kantumruy Pro', sans-serif;">
-        🎙️ ចុចនិយាយ (Voice)
-    </button>
-    <span id="status" style="color: #64748b; font-size: 14px; font-family: 'Kantumruy Pro', sans-serif;">សូមចុចប៊ូតុងដើម្បីនិយាយជាភាសាខ្មែរ...</span>
-</div>
-<script>
-function startListening() {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = 'km-KH'; // កំណត់ភាសាខ្មែរ
-    recognition.onstart = function() {
-        document.getElementById('status').innerText = "🔴 កំពុងស្តាប់... សូមនិយាយ!";
-    };
-    recognition.onresult = function(event) {
-        const speechToText = event.results[0][0].transcript;
-        document.getElementById('status').innerText = "✅ ទទួលបាន៖ " + speechToText;
-        // ส่งข้อมูลไปยัง Streamlit input (រក្សាទុកក្នុង Local Storage)
-        const inputField = window.parent.document.querySelector('input[aria-label="prompt"]');
-        if (inputField) {
-            inputField.value = speechToText;
-            inputField.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-    };
-    recognition.onerror = function(event) {
-        document.getElementById('status').innerText = "❌ មានបញ្ហាក្នុងការស្តាប់ សូមព្យាយាមម្តងទៀត។";
-    };
-    recognition.start();
-}
-</script>
-"""
-components.html(voice_html, height=50)
+# ៥. ប្រអប់និយាយដោយសំឡេង និងបញ្ចូលឯកសារ (GEMINI VOICE BAR)
+st.markdown("💬 **បញ្ជាដោយសំឡេង ឬបញ្ចូលរូបភាព**")
+col_mic, col_file = st.columns([1, 1])
 
-# ៦. របារបញ្ជាឆ្លាតវៃ (GEMINI STYLE BAR)
-with st.form(key='gemini_form', clear_on_submit=False):
-    col_input, col_file, col_submit = st.columns([6, 1.2, 1.2], gap="small")
-    with col_input:
-        ប្រអប់អត្ថបទ = st.text_input("prompt", placeholder="សួរ AI ឬនិយាយ...", label_visibility="collapsed")
-    with col_file:
-        រូបភាព = st.file_uploader("file", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
-    with col_submit:
-        បញ្ជូន = st.form_submit_button("⬆️ ស្កេន", use_container_width=True)
+with col_mic:
+    # 🎙️ ប៊ូតុងនិយាយផ្ទាល់ជាភាសាខ្មែរ
+    spoken_text = mic_to_text(language='km-KH', start_prompt="🎙️ ចុចដើម្បីនិយាយ", stop_prompt="🛑 បញ្ឈប់ការនិយាយ", just_once=True, key='mic')
+    if spoken_text:
+        st.session_state.សំឡេង_អត្ថបទ = spoken_text
 
-if បញ្ជូន and (ប្រអប់អត្ថបទ or រូបភាព):
-    with st.spinner("AI កំពុងវិភាគ..."):
-        try:
-            សំណុំទិន្នន័យ = ["ទាញយកទិន្នន័យអ្នកជំងឺពីអត្ថបទ ឬរូបភាពនេះជា JSON:"]
-            if ប្រអប់អត្ថបទ: សំណុំទិន្នន័យ.append(ប្រអប់អត្ថបទ)
-            if រូបភាព: សំណុំទិន្នន័យ.append(Image.open(រូបភាព))
-            
-            ចម្លើយ = vision_model.generate_content(សំណុំទិន្នន័យ)
-            អត្ថបទ_json = ចម្លើយ.text.replace("```json", "").replace("```", "").strip()
-            ទិន្នន័យ = json.loads(អត្ថបទ_json)
-            
-            if "name" in ទិន្នន័យ: st.session_state.ស្កេន_ឈ្មោះ = ទិន្នន័យ["name"]
-            if "age" in ទិន្នន័យ: st.session_state.ស្កេន_អាយុ = int(ទិន្នន័យ["age"])
-            if "time" in ទិន្នន័យ: st.session_state.ស្កេន_ម៉ោង = int(ទិន្នន័យ["time"])
-            if "cancelled" in ទិន្នន័យ: st.session_state.ស្កេន_លុប = int(ទិន្នន័យ["cancelled"])
-            st.success("✅ AI បានទាញទិន្នន័យដាក់ចូល Form ខាងក្រោមរួចរាល់!")
-        except:
-            st.error("⚠️ AI មិនអាចអានទិន្នន័យបានទេ។ សូមព្យាយាមម្តងទៀត។")
+with col_file:
+    រូបភាព = st.file_uploader("បញ្ចូលរូបភាព", type=["jpg", "png", "jpeg"], label_visibility="collapsed")
+
+# ប្រអប់បង្ហាញអត្ថបទដែលនិយាយបាន ឬអាចកែសម្រួលបាន
+ប្រអប់អត្ថបទ = st.text_input("អត្ថបទបញ្ជា:", value=st.session_state.សំឡេង_អត្ថបទ, placeholder="និយាយ ឬវាយបញ្ចូលទីនេះ...")
+
+if st.button("✨ ឱ្យ AI វិភាគ និងបំពេញទម្រង់", use_container_width=True):
+    if ប្រអប់អត្ថបទ or រូបភាព:
+        with st.spinner("AI កំពុងវិភាគយ៉ាងលឿន..."):
+            try:
+                សំណុំទិន្នន័យ = ["ទាញយកទិន្នន័យអ្នកជំងឺពីអត្ថបទ ឬរូបភាពនេះជា JSON:"]
+                if ប្រអប់អត្ថបទ: សំណុំទិន្នន័យ.append(ប្រអប់អត្ថបទ)
+                if រូបភាព: សំណុំទិន្នន័យ.append(Image.open(រូបភាព))
+                
+                ចម្លើយ = vision_model.generate_content(សំណុំទិន្នន័យ)
+                អត្ថបទ_json = ចម្លើយ.text.replace("```json", "").replace("```", "").strip()
+                ទិន្នន័យ = json.loads(អត្ថបទ_json)
+                
+                if "name" in ទិន្នន័យ: st.session_state.ស្កេន_ឈ្មោះ = ទិន្នន័យ["name"]
+                if "age" in ទិន្នន័យ: st.session_state.ស្កេន_អាយុ = int(ទិន្នន័យ["age"])
+                if "time" in ទិន្នន័យ: st.session_state.ស្កេន_ម៉ោង = int(ទិន្នន័យ["time"])
+                if "cancelled" in ទិន្នន័យ: st.session_state.ស្កេន_លុប = int(ទិន្នន័យ["cancelled"])
+                st.success("✅ ជោគជ័យ! ទិន្នន័យត្រូវបានទាញដាក់ចូល Form ខាងក្រោម។")
+            except:
+                st.error("⚠️ AI មិនអាចអានបានទេ។ សូមព្យាយាមនិយាយ ឬបញ្ចូលម្តងទៀត។")
+    else:
+        st.warning("⚠️ សូមនិយាយ ឬបញ្ចូលអត្ថបទ/រូបភាពជាមុនសិន!")
 
 st.divider()
 
-# ៧. ទម្រង់ Auto-fill
+# ៦. ទម្រង់ Auto-fill
 st.markdown("📝 **ពិនិត្យ និងរក្សាទុកទិន្នន័យ**")
 ឈ្មោះ = st.text_input("ឈ្មោះ", value=st.session_state.ស្កេន_ឈ្មោះ)
 col1, col2 = st.columns(2)
 with col1: អាយុ = st.number_input("អាយុ", min_value=1, max_value=100, value=st.session_state.ស្កេន_អាយុ)
-with col2: ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], index=st.session_state.ស្កεន_ម៉ោង if 'ស្កεន_ម៉ោង' in locals() else st.session_state.ស្កេន_ម៉ោង, format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
+with col2: ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], index=st.session_state.ស្កេន_ម៉ោង, format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
 ធ្លាប់លុប = st.radio("ធ្លាប់លុបការណាត់?", [0, 1], index=st.session_state.ស្កេន_លុប, format_func=lambda x: "ទេ ❌" if x==0 else "ធ្លាប់ ✅", horizontal=True)
 
 if st.button("💾 រក្សាទុកចូល Cloud", use_container_width=True):
@@ -160,6 +135,7 @@ if st.button("💾 រក្សាទុកចូល Cloud", use_container_width
         st.info("រក្សាទុករួចរាល់!")
         st.session_state.ស្កេន_ឈ្មោះ = ""
         st.session_state.ស្កេន_អាយុ = 25
+        st.session_state.សំឡេង_អត្ថបទ = ""
     else:
         st.warning("សូមបញ្ចូលឈ្មោះអ្នកជំងឺ!")
 

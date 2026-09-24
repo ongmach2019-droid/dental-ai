@@ -6,3 +6,4 @@ streamlit-autorefresh
 google-generativeai
 Pillow
 streamlit-mic-recorder
+streamlit-mic-recorder
