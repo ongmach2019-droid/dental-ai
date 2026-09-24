@@ -8,41 +8,59 @@ from streamlit_autorefresh import st_autorefresh
 # ១. កំណត់ទម្រង់វេបសាយ 
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-# ២. កូដរចនា CSS 
+# ២. កូដរចនា CSS ដើម្បីទាញវេបសាយឱ្យខិតទៅលើកប់ និងបង្រួមចន្លោះ
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
     * { font-family: 'Kantumruy Pro', sans-serif !important; }
     .stApp { background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); }
-    .main .block-container {
-        background-color: rgba(255, 255, 255, 0.95); padding: 1.5rem 3rem 2.5rem 3rem;
-        border-radius: 20px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-        margin-top: 1rem; margin-bottom: 2rem; border: 1px solid rgba(255, 255, 255, 0.5);
+    
+    /* នេះគឺជាកូដទាញវេបសាយឱ្យខិតឡើងលើ (លុបចន្លោះទទេរ) */
+    .block-container {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1rem !important;
     }
+    
+    .main .block-container {
+        background-color: rgba(255, 255, 255, 0.95); 
+        padding: 2rem 2.5rem !important;
+        border-radius: 20px; 
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+    
+    /* លាក់របារពណ៌សរបស់ Streamlit ខាងលើគេបន្តិចដើម្បីចំណេញកន្លែង */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
+    }
+
     .stTabs [data-baseweb="tab-list"] { background-color: #f1f5f9; padding: 5px; border-radius: 12px; gap: 10px; }
-    .stTabs [data-baseweb="tab"] { border-radius: 8px !important; padding: 10px 20px !important; background-color: transparent; }
+    .stTabs [data-baseweb="tab"] { border-radius: 8px !important; padding: 5px 20px !important; background-color: transparent; }
     .stTabs [aria-selected="true"] { background-color: #ffffff !important; box-shadow: 0 2px 5px rgba(0,0,0,0.05) !important; color: #0284c7 !important; font-weight: 600 !important; }
+    
     div.stButton > button {
         background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important;
         color: white !important; border: none !important; border-radius: 12px !important;
-        height: 55px !important; font-size: 18px !important; font-weight: 600 !important;
+        height: 50px !important; font-size: 18px !important; font-weight: 600 !important;
         box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3) !important; transition: all 0.3s ease !important;
+        margin-top: 5px !important;
     }
     div.stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4) !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# ៣. បង្កើតប៊ូតុងកុងតាក់ Auto Refresh នៅជ្រុងស្តាំលើ
-col1, col2 = st.columns([7, 3])
+# ៣. ផ្ទៃវេបសាយ (UI) - រៀបចំណងជើងមុនគេ
+st.markdown("<h1 style='color: #0c4a6e; text-align: center; font-size: 30px; margin-bottom: 0px;'>🏥 ប្រព័ន្ធ AI ពេទ្យធ្មេញ</h1>", unsafe_allow_html=True)
+
+# ៤. កុងតាក់ Auto Refresh ដាក់នៅកណ្តាលរាងតូចស្អាតចំណេញកន្លែង
+col1, col2, col3 = st.columns([3, 2, 3])
 with col2:
-    # កុងតាក់នេះនឹងបើកដោយស្វ័យប្រវត្តិ (value=True)
-    is_auto_refresh = st.toggle("🔄 Auto refresh", value=True)
+    is_auto_refresh = st.toggle("🔄 Auto refresh (10s)", value=True)
 
 if is_auto_refresh:
-    # បើកុងតាក់បើក វានឹង Refresh រាល់ ១០ វិនាទី
     st_autorefresh(interval=10000, key="auto_refresh")
 
-# ៤. ភ្ជាប់ទៅកាន់ Google Sheets (Cloud)
+# ៥. ភ្ជាប់ទៅកាន់ Google Sheets (Cloud)
 @st.cache_resource
 def init_gsheets():
     credentials = st.secrets["gcp_service_account"]
@@ -76,19 +94,15 @@ def save_to_gsheets(ឈ្មោះ, អាយុ, ម៉ោងណាត់, ធ
         return True, "ជោគជ័យ"
     except Exception as e: return False, str(e)
 
-# ៥. ផ្ទៃវេបសាយ (UI)
-st.markdown("<h1 style='color: #0c4a6e; text-align: center; font-size: 32px;'>🏥 ប្រព័ន្ធ AI ពេទ្យធ្មេញ</h1>", unsafe_allow_html=True)
-
 tab1, tab2 = st.tabs(["📝 បញ្ចូលទិន្នន័យថ្មី", "📊 បញ្ជីអ្នកជំងឺ (Cloud)"])
 
 with tab1:
-    st.markdown("<br>", unsafe_allow_html=True)
+    # ខ្ញុំបានលុបការចុះបន្ទាត់ (<br>) ចោលទាំងអស់ដើម្បីឱ្យវារួញចូលគ្នា
     ឈ្មោះ = st.text_input("ឈ្មោះអ្នកជំងឺ", placeholder="ឧ. សុខា...")
     col1, col2 = st.columns(2)
     with col1: អាយុ = st.number_input("អាយុ", min_value=1, max_value=100, value=25)
     with col2: ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់ជួប", options=[0, 1], format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
     ធ្លាប់លុប = st.radio("តើធ្លាប់លុបចោលការណាត់ពីមុនទេ?", options=[0, 1], format_func=lambda x: "ទេ ❌" if x==0 else "ធ្លាប់ ✅", horizontal=True)
-    st.markdown("<br>", unsafe_allow_html=True)
     
     if st.button("✨ វិភាគ និងផ្ញើលទ្ធផល", use_container_width=True):
         if ឈ្មោះ == "": st.warning("⚠️ សូមបញ្ចូលឈ្មោះអ្នកជំងឺជាមុនសិន!")
@@ -110,6 +124,5 @@ with tab1:
                 else: st.error(f"បរាជ័យក្នុងការរក្សាទុក! មូលហេតុ៖ {បញ្ហា}", icon="❌")
 
 with tab2:
-    st.markdown("<br>", unsafe_allow_html=True)
     st.metric(label="ចំនួនអ្នកជំងឺសរុប (នាក់)", value=f"{len(df_ទិន្នន័យចាស់)}")
     st.dataframe(df_ទិន្នន័យចាស់, use_container_width=True)
