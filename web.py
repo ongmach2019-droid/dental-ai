@@ -8,10 +8,10 @@ from streamlit_autorefresh import st_autorefresh
 # ១. កំណត់ទម្រង់វេបសាយ 
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-# ២. កំណត់ Refresh រាល់ ១០ វិនាទី ហើយចាប់យកលេខដែលវាលោត
-ចំនួន_refresh = st_autorefresh(interval=10000, key="auto_refresh")
+# ២. កំណត់ Refresh រាល់ ១០ វិនាទី (ឱ្យវាដើរស្ងាត់ៗនៅពីក្រោយ)
+st_autorefresh(interval=10000, key="auto_refresh")
 
-# ៣. កូដរចនា CSS
+# ៣. កូដរចនា CSS និង មុខងាររាប់ថយក្រោយនៅជ្រុងខាងស្តាំ
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
@@ -32,7 +32,51 @@ st.markdown("""
         box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3) !important; transition: all 0.3s ease !important;
     }
     div.stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4) !important; }
+    
+    /* កូដរចនាប្រអប់រាប់ថយក្រោយនៅជ្រុងខាងស្តាំលើ */
+    .countdown-box {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 8px 15px;
+        border-radius: 20px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        font-size: 15px;
+        font-weight: 700;
+        color: #0ea5e9;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        border: 1px solid #e0f2fe;
+    }
+    
+    /* មុខងាររាប់ថយក្រោយ 10s (Pure CSS Animation) */
+    .timer-text::after {
+        content: "10";
+        animation: countdown 10s step-end infinite;
+    }
+    @keyframes countdown {
+        0% { content: "10"; }
+        10% { content: "9"; }
+        20% { content: "8"; }
+        30% { content: "7"; }
+        40% { content: "6"; }
+        50% { content: "5"; }
+        60% { content: "4"; }
+        70% { content: "3"; }
+        80% { content: "2"; }
+        90% { content: "1"; }
+        100% { content: "0"; }
+    }
     </style>
+    
+    <!-- បង្ហាញប្រអប់រាប់ថយក្រោយនៅលើវេបសាយ -->
+    <div class="countdown-box">
+        <span>🔄</span>
+        <span class="timer-text"></span>
+    </div>
 """, unsafe_allow_html=True)
 
 # ៤. ភ្ជាប់ទៅកាន់ Google Sheets (Cloud)
@@ -71,9 +115,6 @@ def save_to_gsheets(ឈ្មោះ, អាយុ, ម៉ោងណាត់, ធ
 
 # ៥. ផ្ទៃវេបសាយ (UI)
 st.markdown("<h1 style='color: #0c4a6e; text-align: center; font-size: 32px;'>🏥 ប្រព័ន្ធ AI ពេទ្យធ្មេញ</h1>", unsafe_allow_html=True)
-
-# បង្ហាញលេខ Refresh ឱ្យឃើញច្បាស់នៅទីនេះ!
-st.markdown(f"<p style='text-align: center; color: #10b981; font-weight: bold;'>🔄 ប្រព័ន្ធកំពុងធ្វើបច្ចុប្បន្នភាពទិន្នន័យស្វ័យប្រវត្តិ (លោតបាន {ចំនួន_refresh} ដង)</p>", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["📝 បញ្ចូលទិន្នន័យថ្មី", "📊 បញ្ជីអ្នកជំងឺ (Cloud)"])
 
