@@ -77,25 +77,23 @@ tab1, tab2 = st.tabs(["✨ បញ្ចូលទិន្នន័យ", "📊 �
 with tab1:
     st.markdown("📝 **បញ្ចូលព័ត៌មានអ្នកជំងឺ**")
     
-    # មុខងារស្វែងរកប្រវត្តិឈ្មោះស្វ័យប្រវត្តិ
     input_name = st.text_input("ឈ្មោះ", placeholder="ឧ. សុខា...")
     
-    # កំណត់តម្លៃលំនាំដើម
     default_age = 25
     default_time = 0
     default_cancelled = 0
     
-    # ពិនិត្យមើលក្នុង Database ថាតើឈ្មោះនេះធ្លាប់មានប្រវត្តិឬទេ
+    # ចាប់យកទិន្នន័យចុងក្រោយបំផុត (Latest Record) របស់អតិថិជនម្នាក់ៗឱ្យបានត្រឹមត្រូវ
     if input_name and not df_ទិន្នន័យចាស់.empty:
         matched_rows = df_ទិន្នន័យចាស់[df_ទិន្នន័យចាស់['ឈ្មោះ'].str.strip().str.lower() == input_name.strip().lower()]
         if not matched_rows.empty:
-            # ចាប់យក អាយុ ម៉ោងណាត់ និងប្រវត្តិលុបចុងក្រោយរបស់គាត់មកបំពេញ Auto
+            # ប្រើ iloc[-1] ដើម្បីទាញយកអាយុ និងម៉ោងណាត់លើកចុងក្រោយរបស់គាត់មកបង្ហាញ
             default_age = int(matched_rows.iloc[-1]['អាយុ'])
             default_time = int(matched_rows.iloc[-1]['ម៉ោងណាត់'])
             if (matched_rows['ធ្លាប់លុបចោលការណាត់ពីមុន'] == 1).any():
                 default_cancelled = 1
             
-            st.info(f"💡 រកឃើញប្រវត្តិ៖ ប្រព័ន្ធបានទាញយក **អាយុ ({default_age})**, **ម៉ោងណាត់** និង **ប្រវត្តិខកខាន** របស់ '{input_name}' មកបំពេញជូនស្វ័យប្រវត្តិ!", icon="ℹ️")
+            st.info(f"💡 រកឃើញប្រវត្តិ៖ ប្រព័ន្ធបានទាញយក **អាយុចុងក្រោយ ({default_age})** និងប្រវត្តិរបស់ '{input_name}' មកបំពេញជូនស្វ័យប្រវត្តិ!", icon="ℹ️")
 
     col1, col2 = st.columns(2)
     with col1: 
@@ -112,7 +110,7 @@ with tab1:
             else:
                 ការព្យាករណ៍ = 0
             
-            សារ = f"⚠️ ព្រមាន៖ {input_name} អាចមិនមកតាមการណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {input_name} នឹងមកតាមការណាត់。"
+            សារ = f"⚠️ ព្រមាន៖ {input_name} អាចមិនមកតាមការណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {input_name} នឹងមកតាមការណាត់。"
             st.error(សារ) if ការព្យាករណ៍==1 else st.success(សារ)
             send_telegram(សារ)
             worksheet.append_row([input_name, អាយុ, ម៉ោងណាត់, ធ្លាប់លុប, int(ការព្យាករណ៍)])
@@ -126,8 +124,9 @@ with tab2:
     if not df_ទិន្នន័យចាស់.empty and 'ឈ្មោះ' in df_ទិន្នន័យចាស់.columns:
         search_query = st.text_input("🔍 ស្វែងរកតាមឈ្មោះអ្នកជំងឺ", placeholder="វាយឈ្មោះទីនេះเพื่อ filter...", label_visibility="collapsed")
         
+        # កែសម្រួលការទាញយកអាយុ គឺយកអាយុចុងក្រោយ (last) របស់គាត់មកបង្ហាញក្នុងតារាងសង្ខេប ដើម្បីកុំឱ្យខុសគ្នា
         df_grouped = df_ទិន្នន័យចាស់.groupby('ឈ្មោះ').agg(
-            អាយុ=('អាយុ', 'first'),
+            អាយុ=('អាយុ', 'last'),
             ចំនួនដងមកសរុប=('ឈ្មោះ', 'count'),
             ធ្លាប់លុបការណាត់ពីមុន=('ធ្លាប់លុបចោលការណាត់ពីមុន', 'sum'),
             លទ្ធផលជាក់ស្តែង=('លទ្ធផលជាក់ស្តែង', 'sum')
