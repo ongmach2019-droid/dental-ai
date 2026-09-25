@@ -21,22 +21,22 @@ def get_base64_of_bin_file(bin_file):
 
 img_base64 = get_base64_of_bin_file('1.jpg')
 
-# ២. កូដ CSS ដាក់ Background យករូប 1.jpg ផ្ទាល់របស់អ្នក
-bg_css = f"""
+# ២. កូដ CSS ដាក់ Background យករូប 1.jpg ផ្ទាល់របស់អ្នក (ជៀសវាងបញ្ហា f-string syntax)
+bg_css = """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
-    * {{ font-family: 'Kantumruy Pro', sans-serif !important; }}
+    * { font-family: 'Kantumruy Pro', sans-serif !important; }
     
-    .stApp {{
+    .stApp {
         background: linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.5)), 
-                    url("data:image/jpg;base64,{img_base64}");
+                    url("data:image/jpg;base64,__IMG_DATA__");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
     }
     
-    .block-container {{ 
+    .block-container { 
         padding-top: 1.5rem !important; 
         padding-bottom: 1rem !important; 
         max-width: 750px; 
@@ -48,29 +48,32 @@ bg_css = f"""
         border: 1px solid rgba(255, 255, 255, 0.5);
     }
     
-    .auto-refresh-container {{
+    .auto-refresh-container {
         display: flex;
         justify-content: flex-end;
         margin-top: 10px;
         margin-bottom: 5px;
     }
     
-    div[data-testid="stToggle"] label p {{ font-size: 0px; }}
-    div[data-testid="stToggle"] label p::before {{ content: "🔄 Auto refresh"; font-size: 14px; margin-right: 5px; color: #475569; font-weight: 500;}}
+    div[data-testid="stToggle"] label p { font-size: 0px; }
+    div[data-testid="stToggle"] label p::before { content: "🔄 Auto refresh"; font-size: 14px; margin-right: 5px; color: #475569; font-weight: 500;}
     
-    div.stButton > button {{
+    div.stButton > button {
         border-radius: 12px !important; font-weight: bold !important; height: 48px !important;
         background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important; color: white !important; border: none !important;
         box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         transition: all 0.3s ease;
-    }}
-    div.stButton > button:hover {{
+    }
+    div.stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-    }}
+    }
     </style>
 """
-st.markdown(bg_css, unsafe_allow_html=True)
+
+# បញ្ចូលទិន្នន័យរូបភាព Base64 ជំនួសកន្លែង __IMG_DATA__
+final_css = bg_css.replace("__IMG_DATA__", img_base64)
+st.markdown(final_css, unsafe_allow_html=True)
 
 # ៣. ចំណងជើងវេបសាយ
 st.markdown("<h2 style='text-align: center; color: #0f172a; margin-top: 0px; margin-bottom: 0px;'>🏥 AI ពេទ្យធ្មេញ</h2>", unsafe_allow_html=True)
