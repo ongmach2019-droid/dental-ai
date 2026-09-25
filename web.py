@@ -8,13 +8,33 @@ from streamlit_autorefresh import st_autorefresh
 # ១. កំណត់ទម្រង់វេបសាយ
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-# ២. កូដ CSS រចនាទម្លាក់ Auto refresh ឱ្យមកក្រោមបន្តិច និងស្អាត
+# ២. កូដ CSS ដាក់ Background រូបភាពពេទ្យធ្មេញ និងរចនាបែប Glassmorphism ស្អាតកប់ស៊េរី
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
     * { font-family: 'Kantumruy Pro', sans-serif !important; }
-    .stApp { background-color: #f8fafc; }
-    .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; max-width: 750px; }
+    
+    /* ដាក់រូបភាព Background ព្រមទាំងមាន Overlay ពណ៌ខៀវស្រទន់ដើម្បីឱ្យអក្សរងាយអាន */
+    .stApp {
+        background: linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), 
+                    url('https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=1920&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }
+    
+    .block-container { 
+        padding-top: 1.5rem !important; 
+        padding-bottom: 1rem !important; 
+        max-width: 750px; 
+        background-color: rgba(255, 255, 255, 0.92) !important;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
     
     .auto-refresh-container {
         display: flex;
@@ -24,11 +44,17 @@ st.markdown("""
     }
     
     div[data-testid="stToggle"] label p { font-size: 0px; }
-    div[data-testid="stToggle"] label p::before { content: "🔄 Auto refresh"; font-size: 14px; margin-right: 5px; color: #64748b; font-weight: 500;}
+    div[data-testid="stToggle"] label p::before { content: "🔄 Auto refresh"; font-size: 14px; margin-right: 5px; color: #475569; font-weight: 500;}
     
     div.stButton > button {
         border-radius: 12px !important; font-weight: bold !important; height: 48px !important;
         background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%) !important; color: white !important; border: none !important;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        transition: all 0.3s ease;
+    }
+    div.stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -83,11 +109,9 @@ with tab1:
     default_time = 0
     default_cancelled = 0
     
-    # ចាប់យកទិន្នន័យចុងក្រោយបំផុត (Latest Record) របស់អតិថិជនម្នាក់ៗឱ្យបានត្រឹមត្រូវ
     if input_name and not df_ទិន្នន័យចាស់.empty:
         matched_rows = df_ទិន្នន័យចាស់[df_ទិន្នន័យចាស់['ឈ្មោះ'].str.strip().str.lower() == input_name.strip().lower()]
         if not matched_rows.empty:
-            # ប្រើ iloc[-1] ដើម្បីទាញយកអាយុ និងម៉ោងណាត់លើកចុងក្រោយរបស់គាត់មកបង្ហាញ
             default_age = int(matched_rows.iloc[-1]['អាយុ'])
             default_time = int(matched_rows.iloc[-1]['ម៉ោងណាត់'])
             if (matched_rows['ធ្លាប់លុបចោលការណាត់ពីមុន'] == 1).any():
@@ -124,7 +148,6 @@ with tab2:
     if not df_ទិន្នន័យចាស់.empty and 'ឈ្មោះ' in df_ទិន្នន័យចាស់.columns:
         search_query = st.text_input("🔍 ស្វែងរកតាមឈ្មោះអ្នកជំងឺ", placeholder="វាយឈ្មោះទីនេះเพื่อ filter...", label_visibility="collapsed")
         
-        # កែសម្រួលការទាញយកអាយុ គឺយកអាយុចុងក្រោយ (last) របស់គាត់មកបង្ហាញក្នុងតារាងសង្ខេប ដើម្បីកុំឱ្យខុសគ្នា
         df_grouped = df_ទិន្នន័យចាស់.groupby('ឈ្មោះ').agg(
             អាយុ=('អាយុ', 'last'),
             ចំនួនដងមកសរុប=('ឈ្មោះ', 'count'),
