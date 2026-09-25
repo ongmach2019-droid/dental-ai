@@ -8,7 +8,7 @@ from streamlit_autorefresh import st_autorefresh
 # ១. កំណត់ទម្រង់វេបសាយ
 st.set_page_config(page_title="AI ពេទ្យធ្មេញ", page_icon="🦷", layout="centered")
 
-# ២. កូដ CSS រចនាបែប Gemini Minimalist
+# ២. កូដ CSS រចនាទម្លាក់ Auto refresh ឱ្យមកក្រោមបន្តិច និងស្អាត
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
@@ -16,8 +16,16 @@ st.markdown("""
     .stApp { background-color: #f8fafc; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; max-width: 750px; }
     
+    /* កែសម្រួលគម្លាតប្រអប់ Toggle Auto refresh ឱ្យមកក្រោមស្អាត */
+    .auto-refresh-container {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+    
     div[data-testid="stToggle"] label p { font-size: 0px; }
-    div[data-testid="stToggle"] label p::before { content: "🔄 Auto (10s)"; font-size: 14px; margin-right: 5px; color: gray;}
+    div[data-testid="stToggle"] label p::before { content: "🔄 Auto refresh"; font-size: 14px; margin-right: 5px; color: #64748b; font-weight: 500;}
     
     div.stButton > button {
         border-radius: 12px !important; font-weight: bold !important; height: 48px !important;
@@ -26,14 +34,18 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ៣. ផ្នែកក្បាល និង Auto Refresh
-col_t1, col_t2 = st.columns([7, 3])
-with col_t2: is_auto_refresh = st.toggle("Auto refresh", value=True, key="auto_ref")
-if is_auto_refresh: st_autorefresh(interval=10000, key="ar")
+# ៣. ចំណងជើងវេបសាយ
+st.markdown("<h2 style='text-align: center; color: #0f172a; margin-top: 0px; margin-bottom: 0px;'>🏥 AI ពេទ្យធ្មេញ</h2>", unsafe_allow_html=True)
 
-st.markdown("<h2 style='text-align: center; color: #0f172a; margin-top: -20px; margin-bottom: 15px;'>🏥 AI ពេទ្យធ្មេញ</h2>", unsafe_allow_html=True)
+# ៤. ប៊ូតុង Auto refresh រំកិលមកកន្លែងសមរម្យនៅខាងស្តាំក្រោមចំណងជើង
+col_space, col_toggle = st.columns([6, 3])
+with col_toggle:
+    is_auto_refresh = st.toggle("Auto refresh", value=True, key="auto_ref")
 
-# ៤. ភ្ជាប់ទៅ Google Sheets (Cloud)
+if is_auto_refresh: 
+    st_autorefresh(interval=10000, key="ar")
+
+# ៥. ភ្ជាប់ទៅ Google Sheets (Cloud)
 @st.cache_resource
 def init_services():
     credentials = st.secrets["gcp_service_account"]
@@ -60,7 +72,7 @@ def send_telegram(message):
     try: requests.get(url) 
     except: pass
 
-# ៥. បែងចែកជា Tab ពីរ (លុបប្រអប់ AI ចោលទាំងស្រុង ប្រើទម្រង់ធម្មតាវិញ)
+# ៦. បែងចែកជា Tab ពីរ
 tab1, tab2 = st.tabs(["✨ បញ្ចូលទិន្នន័យ", "📊 បញ្ជីសង្ខេបតាមឈ្មោះ"])
 
 with tab1:
@@ -86,7 +98,7 @@ with tab1:
         else:
             st.warning("សូមបញ្ចូលឈ្មោះអ្នកជំងឺ!")
 
-# ៦. ផ្ទាំងសង្ខេបតារាងតាមឈ្មោះ ព្រមទាំងប្រអប់ស្វែងរក (Filter) នៅ Tab 2
+# ៧. ផ្ទាំងសង្ខេបតារាងតាមឈ្មោះ ព្រមទាំងប្រអប់ស្វែងរក (Filter) នៅ Tab 2
 with tab2:
     st.markdown("📊 **តារាងសង្ខេបចំនួនដងមកព្យាបាលរបស់អតិថិជនម្នាក់ៗ**")
     if not df_ទិន្នន័យចាស់.empty and 'ឈ្មោះ' in df_ទិន្នន័យចាស់.columns:
