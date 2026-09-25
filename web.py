@@ -80,26 +80,29 @@ with tab1:
     # មុខងារស្វែងរកប្រវត្តិឈ្មោះស្វ័យប្រវត្តិ
     input_name = st.text_input("ឈ្មោះ", placeholder="ឧ. សុខា...")
     
-    # ពិនិត្យមើលក្នុង Database ថាតើឈ្មោះនេះធ្លាប់មានប្រវត្តិលុបការណាត់ពីមុនដែរឬទេ
-    default_cancelled = 0
+    # កំណត់តម្លៃលំនាំដើម
     default_age = 25
+    default_time = 0
+    default_cancelled = 0
+    
+    # ពិនិត្យមើលក្នុង Database ថាតើឈ្មោះនេះធ្លាប់មានប្រវត្តិឬទេ
     if input_name and not df_ទិន្នន័យចាស់.empty:
         matched_rows = df_ទិន្នន័យចាស់[df_ទិន្នន័យចាស់['ឈ្មោះ'].str.strip().str.lower() == input_name.strip().lower()]
         if not matched_rows.empty:
-            # យករសជាតិអាយុចុងក្រោយរបស់គាត់មកដាក់វិញ
+            # ចាប់យក អាយុ ម៉ោងណាត់ និងប្រវត្តិលុបចុងក្រោយរបស់គាត់មកបំពេញ Auto
             default_age = int(matched_rows.iloc[-1]['អាយុ'])
-            # ប្រសិនបើក្នុងប្រវត្តិធ្លាប់មានការលុបចោលយ៉ាងហោចណាស់ម្តង (តម្លៃ 1)
+            default_time = int(matched_rows.iloc[-1]['ម៉ោងណាត់'])
             if (matched_rows['ធ្លាប់លុបចោលការណាត់ពីមុន'] == 1).any():
                 default_cancelled = 1
-                st.info(f"💡 រកឃើញប្រវត្តិ៖ អ្នកជំងឺ '{input_name}' ធ្លាប់ខកខានការណាត់ពីមុន!", icon="ℹ️")
+            
+            st.info(f"💡 រកឃើញប្រវត្តិ៖ ប្រព័ន្ធបានទាញយក **អាយុ ({default_age})**, **ម៉ោងណាត់** និង **ប្រវត្តិខកខាន** របស់ '{input_name}' មកបំពេញជូនស្វ័យប្រវត្តិ!", icon="ℹ️")
 
     col1, col2 = st.columns(2)
     with col1: 
         អាយុ = st.number_input("អាយុ", min_value=1, max_value=100, value=default_age)
     with col2: 
-        ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
+        ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], index=default_time, format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
     
-    # កំណត់ index ស្វ័យប្រវត្តិយោងតាមប្រវត្តិដែលទាញបាន (0 = ទេ, 1 = ធ្លាប់)
     ធ្លាប់លុប = st.radio("ធ្លាប់លុបការណាត់?", [0, 1], index=default_cancelled, format_func=lambda x: "ទេ ❌" if x==0 else "ធ្លាប់ ✅", horizontal=True)
 
     if st.button("💾 រក្សាទុកចូល Cloud", use_container_width=True):
@@ -109,7 +112,7 @@ with tab1:
             else:
                 ការព្យាករណ៍ = 0
             
-            សារ = f"⚠️ ព្រមាន៖ {input_name} អាចមិនមកតាមការណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {input_name} នឹងមកតាមការណាត់。"
+            សារ = f"⚠️ ព្រមាន៖ {input_name} អាចមិនមកតាមการណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {input_name} នឹងមកតាមការណាត់。"
             st.error(សារ) if ការព្យាករណ៍==1 else st.success(សារ)
             send_telegram(សារ)
             worksheet.append_row([input_name, អាយុ, ម៉ោងណាត់, ធ្លាប់លុប, int(ការព្យាករណ៍)])
@@ -121,7 +124,7 @@ with tab1:
 with tab2:
     st.markdown("📊 **តារាងសង្ខេបចំនួនដងមកព្យាបាលរបស់អតិថិជនម្នាក់ៗ**")
     if not df_ទិន្នន័យចាស់.empty and 'ឈ្មោះ' in df_ទិន្នន័យចាស់.columns:
-        search_query = st.text_input("🔍 ស្វែងរកតាមឈ្មោះអ្នកជំងឺ", placeholder="វាយឈ្មោះទីនេះដើម្បី filter...", label_visibility="collapsed")
+        search_query = st.text_input("🔍 ស្វែងរកតាមឈ្មោះអ្នកជំងឺ", placeholder="វាយឈ្មោះទីនេះเพื่อ filter...", label_visibility="collapsed")
         
         df_grouped = df_ទិន្នន័យចាស់.groupby('ឈ្មោះ').agg(
             អាយុ=('អាយុ', 'first'),
