@@ -17,7 +17,7 @@ st.markdown("""
     /* ដាក់រូបភាព Background ព្រមទាំងមាន Overlay ពណ៌ខៀវស្រទន់ដើម្បីឱ្យអក្សរងាយអាន */
     .stApp {
         background: linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), 
-                    url('https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?q=80&w=1920&auto=format&fit=crop');
+                    url('1.jpg');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
