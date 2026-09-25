@@ -21,14 +21,14 @@ def get_base64_of_bin_file(bin_file):
 
 img_base64 = get_base64_of_bin_file('1.jpg')
 
-# ២. កូដ CSS ដាក់ Background យករូប 1.jpg ផ្ទាល់របស់អ្នក (ជៀសវាងបញ្ហា f-string syntax)
+# ២. កូដ CSS កែប្រែប្រអប់ខាងមុខឱ្យថ្លា (Glassmorphism) មើលឃើញ Background ខាងក្រោយ
 bg_css = """
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap');
     * { font-family: 'Kantumruy Pro', sans-serif !important; }
     
     .stApp {
-        background: linear-gradient(rgba(15, 23, 42, 0.5), rgba(15, 23, 42, 0.5)), 
+        background: linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.4)), 
                     url("data:image/jpg;base64,__IMG_DATA__");
         background-size: cover;
         background-position: center;
@@ -36,16 +36,25 @@ bg_css = """
         background-attachment: fixed;
     }
     
+    /* ប្រអប់ខាងមុខធ្វើឱ្យថ្លា (Glassmorphism) មើលឃើញ Background ខាងក្រោយ */
     .block-container { 
         padding-top: 1.5rem !important; 
         padding-bottom: 1rem !important; 
         max-width: 750px; 
-        background-color: rgba(255, 255, 255, 0.94) !important;
+        background-color: rgba(255, 255, 255, 0.25) !important; /* បន្ថយកម្រិតពណ៌សឱ្យថ្លា */
+        backdrop-filter: blur(12px) !important; /* បន្ថែម אפקטព្រាលកញ្ចក់ឱ្យអក្សរងាយអាន */
+        -webkit-backdrop-filter: blur(12px) !important;
         border-radius: 20px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
         margin-top: 2rem;
         margin-bottom: 2rem;
-        border: 1px solid rgba(255, 255, 255, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+    }
+    
+    /* ធ្វើឱ្យអក្សរចំណងជើង និងស្លាកផ្សេងៗសម៉ត់ច្បាស់ល្អ */
+    h1, h2, h3, h4, h5, h6, p, label, .stMarkdown {
+        color: #0f172a !important;
+        font-weight: 600 !important;
     }
     
     .auto-refresh-container {
@@ -56,7 +65,7 @@ bg_css = """
     }
     
     div[data-testid="stToggle"] label p { font-size: 0px; }
-    div[data-testid="stToggle"] label p::before { content: "🔄 Auto refresh"; font-size: 14px; margin-right: 5px; color: #475569; font-weight: 500;}
+    div[data-testid="stToggle"] label p::before { content: "🔄 Auto refresh"; font-size: 14px; margin-right: 5px; color: #1e293b; font-weight: 600;}
     
     div.stButton > button {
         border-radius: 12px !important; font-weight: bold !important; height: 48px !important;
@@ -71,7 +80,6 @@ bg_css = """
     </style>
 """
 
-# បញ្ចូលទិន្នន័យរូបភាព Base64 ជំនួសកន្លែង __IMG_DATA__
 final_css = bg_css.replace("__IMG_DATA__", img_base64)
 st.markdown(final_css, unsafe_allow_html=True)
 
@@ -162,7 +170,7 @@ with tab1:
 with tab2:
     st.markdown("📊 **តារាងសង្ខេបចំនួនដងមកព្យាបាលរបស់អតិថិជនម្នាក់ៗ**")
     if not df_ទិន្នន័យចាស់.empty and 'ឈ្មោះ' in df_ទិន្នន័យចាស់.columns:
-        search_query = st.text_input("🔍 ស្វែងរកតាមឈ្មោះអ្នកជំងឺ", placeholder="វាយឈ្មោះទីនេះដើម្បី filter...", label_visibility="collapsed")
+        search_query = st.text_input("🔍 ស្វែងរកតាមឈ្មោះអ្នកជំងឺ", placeholder="វាយឈ្មោះទីនេះเพื่อ filter...", label_visibility="collapsed")
         
         df_grouped = df_ទិន្នន័យចាស់.groupby('ឈ្មោះ').agg(
             អាយុ=('អាយុ', 'last'),
