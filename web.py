@@ -16,7 +16,6 @@ st.markdown("""
     .stApp { background-color: #f8fafc; }
     .block-container { padding-top: 1.5rem !important; padding-bottom: 1rem !important; max-width: 750px; }
     
-    /* កែសម្រួលគម្លាតប្រអប់ Toggle Auto refresh ឱ្យមកក្រោមស្អាត */
     .auto-refresh-container {
         display: flex;
         justify-content: flex-end;
@@ -37,7 +36,7 @@ st.markdown("""
 # ៣. ចំណងជើងវេបសាយ
 st.markdown("<h2 style='text-align: center; color: #0f172a; margin-top: 0px; margin-bottom: 0px;'>🏥 AI ពេទ្យធ្មេញ</h2>", unsafe_allow_html=True)
 
-# ៤. ប៊ូតុង Auto refresh រំកិលមកកន្លែងសមរម្យនៅខាងស្តាំក្រោមចំណងជើង
+# ៤. ប៊ូតុង Auto refresh
 col_space, col_toggle = st.columns([6, 3])
 with col_toggle:
     is_auto_refresh = st.toggle("Auto refresh", value=True, key="auto_ref")
@@ -77,23 +76,43 @@ tab1, tab2 = st.tabs(["✨ បញ្ចូលទិន្នន័យ", "📊 �
 
 with tab1:
     st.markdown("📝 **បញ្ចូលព័ត៌មានអ្នកជំងឺ**")
-    ឈ្មោះ = st.text_input("ឈ្មោះ", placeholder="ឧ. សុខា...")
+    
+    # មុខងារស្វែងរកប្រវត្តិឈ្មោះស្វ័យប្រវត្តិ
+    input_name = st.text_input("ឈ្មោះ", placeholder="ឧ. សុខា...")
+    
+    # ពិនិត្យមើលក្នុង Database ថាតើឈ្មោះនេះធ្លាប់មានប្រវត្តិលុបការណាត់ពីមុនដែរឬទេ
+    default_cancelled = 0
+    default_age = 25
+    if input_name and not df_ទិន្នន័យចាស់.empty:
+        matched_rows = df_ទិន្នន័យចាស់[df_ទិន្នន័យចាស់['ឈ្មោះ'].str.strip().str.lower() == input_name.strip().lower()]
+        if not matched_rows.empty:
+            # យករសជាតិអាយុចុងក្រោយរបស់គាត់មកដាក់វិញ
+            default_age = int(matched_rows.iloc[-1]['អាយុ'])
+            # ប្រសិនបើក្នុងប្រវត្តិធ្លាប់មានការលុបចោលយ៉ាងហោចណាស់ម្តង (តម្លៃ 1)
+            if (matched_rows['ធ្លាប់លុបចោលការណាត់ពីមុន'] == 1).any():
+                default_cancelled = 1
+                st.info(f"💡 រកឃើញប្រវត្តិ៖ អ្នកជំងឺ '{input_name}' ធ្លាប់ខកខានការណាត់ពីមុន!", icon="ℹ️")
+
     col1, col2 = st.columns(2)
-    with col1: អាយុ = st.number_input("អាយុ", min_value=1, max_value=100, value=25)
-    with col2: ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
-    ធ្លាប់លុប = st.radio("ធ្លាប់លុបការណាត់?", [0, 1], format_func=lambda x: "ទេ ❌" if x==0 else "ធ្លាប់ ✅", horizontal=True)
+    with col1: 
+        អាយុ = st.number_input("អាយុ", min_value=1, max_value=100, value=default_age)
+    with col2: 
+        ម៉ោងណាត់ = st.selectbox("ម៉ោងណាត់", [0, 1], format_func=lambda x: "ព្រឹក ☀️" if x==0 else "ល្ងាច 🌙")
+    
+    # កំណត់ index ស្វ័យប្រវត្តិយោងតាមប្រវត្តិដែលទាញបាន (0 = ទេ, 1 = ធ្លាប់)
+    ធ្លាប់លុប = st.radio("ធ្លាប់លុបការណាត់?", [0, 1], index=default_cancelled, format_func=lambda x: "ទេ ❌" if x==0 else "ធ្លាប់ ✅", horizontal=True)
 
     if st.button("💾 រក្សាទុកចូល Cloud", use_container_width=True):
-        if ឈ្មោះ:
+        if input_name:
             if ai_model is not None:
                 ការព្យាករណ៍ = ai_model.predict([[អាយុ, ម៉ោងណាត់, ធ្លាប់លុប]])[0]
             else:
                 ការព្យាករណ៍ = 0
             
-            សារ = f"⚠️ ព្រមាន៖ {ឈ្មោះ} អាចមិនមកតាមការណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {ឈ្មោះ} នឹងមកតាមការណាត់。"
+            សារ = f"⚠️ ព្រមាន៖ {input_name} អាចមិនមកតាមការណាត់!" if ការព្យាករណ៍==1 else f"✅ ធម្មតា៖ {input_name} នឹងមកតាមការណាត់。"
             st.error(សារ) if ការព្យាករណ៍==1 else st.success(សារ)
             send_telegram(សារ)
-            worksheet.append_row([ឈ្មោះ, អាយុ, ម៉ោងណាត់, ធ្លាប់លុប, int(ការព្យាករណ៍)])
+            worksheet.append_row([input_name, អាយុ, ម៉ោងណាត់, ធ្លាប់លុប, int(ការព្យាករណ៍)])
             st.info("រក្សាទុករួចរាល់!")
         else:
             st.warning("សូមបញ្ចូលឈ្មោះអ្នកជំងឺ!")
